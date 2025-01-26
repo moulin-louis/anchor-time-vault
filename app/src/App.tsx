@@ -14,7 +14,6 @@ import {
 import { clusterApiUrl, } from "@solana/web3.js";
 import { ProgramAnchorContext } from "./hooks";
 import { TimeVaultLock } from "./idl/idl";
-import { Button } from "./components/ui/button";
 
 import IDL from './idl/idl.json'
 
@@ -47,13 +46,14 @@ function App() {
   // You can also provide a custom RPC endpoint.
   const endpoint = clusterApiUrl("devnet");
 
+
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={[]} autoConnect>
         <WalletModalProvider>
           <WalletMultiButton />
           <ProgramAnchorProvider>
-
+            Helllo
           </ProgramAnchorProvider>
         </WalletModalProvider>
       </WalletProvider>
