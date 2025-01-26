@@ -31,8 +31,10 @@ const App = () => {
         <WalletProvider wallets={[]} autoConnect>
           <WalletModalProvider>
             <ProgramAnchorProvider>
-              <Header />
-              <ProgramLogic />
+              <div className="p-4">
+                <Header />
+                <ProgramLogic />
+              </div>
             </ProgramAnchorProvider>
           </WalletModalProvider>
         </WalletProvider>

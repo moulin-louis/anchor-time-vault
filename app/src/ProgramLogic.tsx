@@ -1,58 +1,56 @@
+
 import { useAnchorWallet } from "@solana/wallet-adapter-react"
 import { PublicKey } from "@solana/web3.js"
 import { useProgram } from "./ProgramProvider"
-import { type Program, utils } from "@coral-xyz/anchor"
+import { Program, utils } from "@coral-xyz/anchor"
 import type { TimeVaultLock } from "./idl/idl"
 import { useEffect, useState } from "react"
-import { Skeleton } from "./components/ui/skeleton"
-import { Button } from "./components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Button } from "@/components/ui/button"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "./components/ui/form"
-import { Input } from "./components/ui/input"
-import { Popover, PopoverContent, PopoverTrigger } from "./components/ui/popover"
-import { cn } from "./lib/utils"
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
-import { Calendar } from "./components/ui/calendar"
+import { Calendar } from "@/components/ui/calendar"
+import { toast } from "./hooks/use-toast"
 
 const checkVaultInit = async (userPubkey: PublicKey, program: Program<TimeVaultLock>): Promise<boolean> => {
   const [vaultPublicKey] = PublicKey.findProgramAddressSync(
     [utils.bytes.utf8.encode("timevault"), userPubkey.toBuffer()],
     program.programId,
   )
-  console.log("vault pubKey = ", vaultPublicKey)
   try {
-    //will throw is vault isnt init
     await program.account.vault.fetch(vaultPublicKey)
-    console.log("vault already init")
     return true
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
-    console.log("vault isnt init")
     return false
   }
 }
 
-const InitVault = () => {
-  const formSchema = z.object({
-    amount: z.string().refine(
-      (val) => {
-        try {
-          const x = BigInt(val)
-          if (x <= BigInt(0)) throw new Error("Big init must be positive")
-          return true
-        } catch {
-          return false
-        }
-      },
-      { message: "Invalid BigInt value" },
-    ),
-    end_date: z.date().min(new Date(), "The date must be in the future..."),
-  })
+const formSchema = z.object({
+  amount: z.string().refine(
+    (val) => {
+      try {
+        const x = BigInt(val)
+        return x > BigInt(0)
+      } catch {
+        return false
+      }
+    },
+    { message: "Amount must be a positive number" },
+  ),
+  end_date: z.date().min(new Date(), "The date must be in the future"),
+})
 
-  const form = useForm<z.infer<typeof formSchema>>({
+type FormValues = z.infer<typeof formSchema>
+
+const InitVault = () => {
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: "1",
@@ -60,11 +58,19 @@ const InitVault = () => {
     },
   })
 
-  const onInit = async (values: z.infer<typeof formSchema>) => {
+  const onInit = async (values: FormValues) => {
     const endDateTime = new Date(values.end_date)
     const diffTime = Math.abs(endDateTime.getTime() - new Date().getTime())
-    console.log(`diff = ${diffTime} ms`)
-    console.log(values)
+    console.log(`Time difference: ${diffTime} ms`)
+    console.log("Form values:", values)
+
+    // Here you would typically call your program's initialization function
+    // For example: await program.methods.initializeVault(new BN(values.amount), new BN(diffTime)).rpc()
+
+    toast({
+      title: "Vault Initialized",
+      description: `Amount: ${values.amount} SOL, Unlock date: ${format(values.end_date, "PPpp")}`,
+    })
   }
 
   return (
@@ -75,11 +81,11 @@ const InitVault = () => {
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Amount</FormLabel>
+              <FormLabel>Amount (SOL)</FormLabel>
               <FormControl>
-                <Input placeholder="shadcn" {...field} />
+                <Input type="number" step="0.000000001" min="0" placeholder="1" {...field} />
               </FormControl>
-              <FormDescription>The amount of $SOL to lock.</FormDescription>
+              <FormDescription>The amount of SOL to lock in the vault.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -89,22 +95,15 @@ const InitVault = () => {
           name="end_date"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Date of birth</FormLabel>
+              <FormLabel>Unlock Date</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
                     <Button
                       variant={"outline"}
-                      className={cn(
-                        "w-[240px] pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
+                      className={cn("w-[240px] pl-3 text-left font-normal", !field.value && "text-muted-foreground")}
                     >
-                      {field.value ? (
-                        format(field.value, "Pp")
-                      ) : (
-                        <span>Pick a date</span>
-                      )}
+                      {field.value ? format(field.value, "PPpp") : <span>Pick a date and time</span>}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
                   </FormControl>
@@ -114,20 +113,18 @@ const InitVault = () => {
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
-                    disabled={(date) =>
-                      date < new Date()}
                     initialFocus
+                    disabled={(date) => date <= new Date()}
+                    onTimeChange={field.onChange}
                   />
                 </PopoverContent>
               </Popover>
-              <FormDescription>
-                Your date of birth is used to calculate your age.
-              </FormDescription>
+              <FormDescription>The date and time when the vault will unlock.</FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit">Submit</Button>
+        <Button type="submit">Initialize Vault</Button>
       </form>
     </Form>
   )
@@ -154,7 +151,7 @@ export const ProgramLogic = () => {
     return <Skeleton className="w-[100px] h-[20px] rounded-full" />
   }
 
-  return isVaultInit ? <div>Vault init</div> : <InitVault />
+  return isVaultInit ? <div>Vault is initialized</div> : <InitVault />
 }
 
 

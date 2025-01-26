@@ -1,67 +1,45 @@
-import React, { useEffect } from "react";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react"
+
+import React, { useEffect, useState } from "react";
+import { ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { DayPicker } from "react-day-picker"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-
-export type CalendarProps = React.ComponentProps<typeof DayPicker>
+export type CalendarProps = React.ComponentProps<typeof DayPicker> & {
+  onTimeChange?: (date: Date) => void;
+}
 
 function Calendar({
   className,
   classNames,
   showOutsideDays = true,
+  onTimeChange,
   ...props
 }: CalendarProps) {
-  const [hours, setHours] = React.useState("00")
-  const [minutes, setMinutes] = React.useState("00")
+  const [hours, setHours] = useState("00")
+  const [minutes, setMinutes] = useState("00")
+
   useEffect(() => {
-    console.log('selected = ', props.selected);
+    if (props.selected instanceof Date) {
+      setHours(props.selected.getHours().toString().padStart(2, "0"))
+      setMinutes(props.selected.getMinutes().toString().padStart(2, "0"))
+    }
   }, [props.selected])
 
-  return (
-    <>
-      <div className="flex items-center justify-center p-2 border-t">
-        <Clock className="mr-2 h-4 w-4" />
-        <Select value={hours} onValueChange={(e) => {
-          setHours(e);
-          const value = props.selected as Date;
-          value.setHours(Number(e));
-          props.onSelect(value)
-        }}>
-          <SelectTrigger className="w-[70px]">
-            <SelectValue placeholder="Hours" />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
-              <SelectItem key={hour} value={hour.toString().padStart(2, "0")}>
-                {hour.toString().padStart(2, "0")}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <span className="mx-2">:</span>
-        <Select value={minutes} onValueChange={(e) => {
-          setMinutes(e);
-          const value = props.selected as Date;
-          value.setMinutes(Number(e));
-          props.onSelect(value)
+  const handleTimeChange = (newHours: string, newMinutes: string) => {
+    if (props.selected instanceof Date && props.onSelect && onTimeChange) {
+      const newDate = new Date(props.selected)
+      newDate.setHours(parseInt(newHours))
+      newDate.setMinutes(parseInt(newMinutes))
+      props.onSelect(newDate)
+      onTimeChange(newDate)
+    }
+  }
 
-        }}>
-          <SelectTrigger className="w-[70px]">
-            <SelectValue placeholder="Minutes" />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
-              <SelectItem key={minute} value={minute.toString().padStart(2, "0")}>
-                {minute.toString().padStart(2, "0")}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+  return (
+    <div className="space-y-4">
       <DayPicker
         showOutsideDays={showOutsideDays}
         className={cn("p-3", className)}
@@ -106,20 +84,54 @@ function Calendar({
           ...classNames,
         }}
         components={{
-          IconLeft: ({ className, ...props }) => (
-            <ChevronLeft className={cn("h-4 w-4", className)} {...props} />
+          IconLeft: ({ ...props }) => (
+            <ChevronLeft className="h-4 w-4" {...props} />
           ),
-          IconRight: ({ className, ...props }) => (
-            <ChevronRight className={cn("h-4 w-4", className)} {...props} />
+          IconRight: ({ ...props }) => (
+            <ChevronRight className="h-4 w-4" {...props} />
           ),
         }}
         {...props}
       />
-    </>
+      <div className="flex items-center justify-center p-2 border-t">
+        <Clock className="mr-2 h-4 w-4" />
+        <Select value={hours} onValueChange={(e) => {
+          setHours(e);
+          handleTimeChange(e, minutes);
+        }}>
+          <SelectTrigger className="w-[70px]">
+            <SelectValue placeholder="Hours" />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 24 }, (_, i) => i).map((hour) => (
+              <SelectItem key={hour} value={hour.toString().padStart(2, "0")}>
+                {hour.toString().padStart(2, "0")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <span className="mx-2">:</span>
+        <Select value={minutes} onValueChange={(e) => {
+          setMinutes(e);
+          handleTimeChange(hours, e);
+        }}>
+          <SelectTrigger className="w-[70px]">
+            <SelectValue placeholder="Minutes" />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: 60 }, (_, i) => i).map((minute) => (
+              <SelectItem key={minute} value={minute.toString().padStart(2, "0")}>
+                {minute.toString().padStart(2, "0")}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    </div>
   )
 }
-Calendar.displayName = "Calendar"
 
+Calendar.displayName = "Calendar"
 
 export { Calendar }
 
