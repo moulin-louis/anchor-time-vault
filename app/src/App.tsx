@@ -1,3 +1,4 @@
+import { ReactNode } from "react";
 import { AnchorProvider, Program } from "@coral-xyz/anchor";
 import {
   AnchorWallet,
@@ -10,17 +11,12 @@ import {
   WalletModalProvider,
   WalletMultiButton,
 } from "@solana/wallet-adapter-react-ui";
-
-// Default styles that can be overridden by your app
-import { ReactNode } from "react";
-import IDL from './idl/idl.json'
-
-import TransactionTest from "./TransactionTest";
 import { clusterApiUrl, } from "@solana/web3.js";
-
-import './App.css'
 import { ProgramAnchorContext } from "./hooks";
 import { TimeVaultLock } from "./idl/idl";
+import { Button } from "./components/ui/button";
+
+import IDL from './idl/idl.json'
 
 
 function ProgramAnchorProvider({ children }: { children: ReactNode }) {
@@ -57,7 +53,7 @@ function App() {
         <WalletModalProvider>
           <WalletMultiButton />
           <ProgramAnchorProvider>
-            <TransactionTest />
+
           </ProgramAnchorProvider>
         </WalletModalProvider>
       </WalletProvider>
