@@ -89,18 +89,6 @@ describe("time-vault-lock", () => {
       .signers([user])
       .rpc();
     console.log("Vault init");
-    //try {
-    //  const tx = await program.methods
-    //    .unlock()
-    //    .accounts({
-    //      user: user.publicKey,
-    //    })
-    //    .signers([user])
-    //    .rpc();
-    //} catch (e) {
-    //  console.error("e = ", e);
-    //}
-
     expect(
       program.methods
         .unlock()
@@ -112,5 +100,6 @@ describe("time-vault-lock", () => {
     ).rejects.toThrow(
       "AnchorError occurred. Error Code: NotReached. Error Number: 6000. Error Message: Time Lock Not Reached."
     );
+    console.log("unlock rejected!");
   });
 });
