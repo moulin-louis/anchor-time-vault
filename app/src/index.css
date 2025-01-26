@@ -1,5 +1,5 @@
-@import '@solana/wallet-adapter-react-ui/styles.css' layer(base);
 @import 'tailwindcss';
+@import '@solana/wallet-adapter-react-ui/styles.css' layer(base);
 
 @plugin 'tailwindcss-animate';
 
@@ -45,14 +45,6 @@
   --color-chart-5: hsl(var(--chart-5));
 }
 
-/*
-  The default border color has changed to `currentColor` in Tailwind CSS v4,
-  so we've added these compatibility styles to make sure everything still
-  looks the same as it did with Tailwind CSS v3.
-
-  If we ever want to remove these styles, we need to add an explicit border
-  color utility to any element that depends on these defaults.
-*/
 @layer base {
   *,
   ::after,
@@ -89,7 +81,7 @@
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
-    --radius: 0.5rem
+    --radius: 0.5rem;
   }
   .dark {
     --background: 0 0% 3.9%;
@@ -115,9 +107,10 @@
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%
+    --chart-5: 340 75% 55%;
   }
 }
+
 @layer base {
   * {
     @apply border-border;

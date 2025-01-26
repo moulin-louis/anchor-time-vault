@@ -16,6 +16,7 @@ import { ProgramAnchorContext } from "./hooks";
 import { TimeVaultLock } from "./idl/idl";
 
 import IDL from './idl/idl.json'
+import { Button } from "./components/ui/button";
 
 
 function ProgramAnchorProvider({ children }: { children: ReactNode }) {
@@ -54,6 +55,9 @@ function App() {
           <WalletMultiButton />
           <ProgramAnchorProvider>
             Helllo
+            <Button>
+              Click Her
+            </Button>
           </ProgramAnchorProvider>
         </WalletModalProvider>
       </WalletProvider>
