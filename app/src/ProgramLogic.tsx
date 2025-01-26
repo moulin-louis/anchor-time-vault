@@ -27,6 +27,7 @@ const checkVaultInit = async (userPubkey: PublicKey, program: Program<TimeVaultL
   try {
     await program.account.vault.fetch(vaultPublicKey)
     return true
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
     return false
   }
