@@ -1,10 +1,9 @@
 
-import { useAnchorWallet } from "@solana/wallet-adapter-react"
 import { PublicKey } from "@solana/web3.js"
 import { useProgram } from "./ProgramProvider"
-import { Program, utils } from "@coral-xyz/anchor"
+import { BN, Program, utils } from "@coral-xyz/anchor"
 import type { TimeVaultLock } from "./idl/idl"
-import { useEffect, useState } from "react"
+import { Dispatch, SetStateAction, useEffect, useState } from "react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -18,39 +17,47 @@ import { format } from "date-fns"
 import { CalendarIcon } from "lucide-react"
 import { Calendar } from "@/components/ui/calendar"
 import { toast } from "./hooks/use-toast"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./components/ui/card"
+
+type VaultInfo = {
+  startClock: BN;
+  endClock: BN;
+  nbrLamports: BN;
+  bump: number;
+}
 
 const checkVaultInit = async (userPubkey: PublicKey, program: Program<TimeVaultLock>): Promise<boolean> => {
   const [vaultPublicKey] = PublicKey.findProgramAddressSync(
-    [utils.bytes.utf8.encode("timevault"), userPubkey.toBuffer()],
+    [utils.bytes.utf8.encode("time-vault"), userPubkey.toBuffer()],
     program.programId,
   )
   try {
     await program.account.vault.fetch(vaultPublicKey)
     return true
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (e) {
+    console.log('error = ', e)
     return false
   }
 }
 
-const formSchema = z.object({
-  amount: z.string().refine(
-    (val) => {
-      try {
-        const x = BigInt(val)
-        return x > BigInt(0)
-      } catch {
-        return false
-      }
-    },
-    { message: "Amount must be a positive number" },
-  ),
-  end_date: z.date().min(new Date(), "The date must be in the future"),
-})
+const InitVault = ({ setIsVaultInit }: { setIsVaultInit: Dispatch<SetStateAction<boolean>> }) => {
+  const formSchema = z.object({
+    amount: z.string().refine(
+      (val) => {
+        try {
+          const x = BigInt(val)
+          return x > BigInt(0)
+        } catch {
+          return false
+        }
+      },
+      { message: "Amount must be a positive number" },
+    ),
+    end_date: z.date().min(new Date(), "The date must be in the future"),
+  })
 
-type FormValues = z.infer<typeof formSchema>
-
-const InitVault = () => {
+  type FormValues = z.infer<typeof formSchema>
+  const program = useProgram();
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -66,12 +73,23 @@ const InitVault = () => {
     console.log("Form values:", values)
 
     // Here you would typically call your program's initialization function
-    // For example: await program.methods.initializeVault(new BN(values.amount), new BN(diffTime)).rpc()
-
-    toast({
-      title: "Vault Initialized",
-      description: `Amount: ${values.amount} SOL, Unlock date: ${format(values.end_date, "PPpp")}`,
-    })
+    try {
+      const tx = await program?.methods.initialize(new BN(diffTime / 1000), new BN(values.amount)).rpc();
+      console.log('tx init hash = ', tx);
+      setIsVaultInit(true);
+      toast({
+        title: "Vault Initialized",
+        description: `Amount: ${values.amount} SOL, Unlock date: ${format(values.end_date, "PPpp")}`,
+      });
+    } catch (e) {
+      const error = e as Error;
+      console.error('failed to init vault: ', error);
+      toast({
+        title: "Failed to init vault",
+        description: `error: ${error.name}`,
+        variant: "destructive",
+      })
+    }
   }
 
   return (
@@ -131,28 +149,97 @@ const InitVault = () => {
   )
 }
 
+const VaultInfo = ({ vault, setIsVaultInit }: { vault: VaultInfo } & { setIsVaultInit: Dispatch<SetStateAction<boolean>> }) => {
+  const program = useProgram();
+
+  console.log('vault start clock = ', vault.startClock.toString())
+  const endDate = new Date(Number(vault.startClock.toString()) * 1000 + Number(vault.endClock.toString()))
+  console.log('endDate = ', endDate);
+
+  const onClickUnlock = async () => {
+    if (!program)
+      throw new Error("program is undefined")
+    const tx = await program?.methods.unlock().rpc();
+    console.log('unlock tx hash = ', tx);
+    console.log('sol unlocked');
+    setIsVaultInit(false);
+    toast({
+      title: "Success",
+      description: `${vault.nbrLamports} lamports unlocked to ${program.provider.publicKey}`
+    })
+  }
+
+  return (<Card>
+    <CardHeader>
+      <CardTitle>
+        Vault
+      </CardTitle>
+      <CardDescription>
+        Unlock in {vault.endClock.toString()} ms
+      </CardDescription>
+    </CardHeader>
+    <CardContent>
+
+      {vault.nbrLamports.toString()} lamports lock till {format(endDate, "PPpp")}
+
+
+    </CardContent>
+    <CardFooter>
+      <Button onClick={onClickUnlock}>
+        Unlock
+      </Button>
+
+    </CardFooter>
+  </Card>)
+}
+
+
+const UnlockVault = ({ setIsVaultInit }: { setIsVaultInit: Dispatch<SetStateAction<boolean>> }) => {
+  const program = useProgram();
+  const [vault, setVault] = useState<undefined | VaultInfo>(undefined);
+
+  useEffect(() => {
+    const x = async () => {
+      if (!program || !program.provider.publicKey)
+        throw new Error("program or wallet is null")
+      const [vaultPublicKey] = PublicKey.findProgramAddressSync(
+        [utils.bytes.utf8.encode("time-vault"), program.provider.publicKey.toBuffer()],
+        program.programId,
+      )
+      const vaultFetch = await program.account.vault.fetch(vaultPublicKey)
+      setVault(vaultFetch);
+    }
+    x();
+  }, [program])
+  if (vault === undefined)
+    return <Skeleton className="w-[100px] h-[20px] rounded-full" />
+  return (
+    <VaultInfo vault={vault} setIsVaultInit={setIsVaultInit} />
+  )
+}
+
 export const ProgramLogic = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [isVaultInit, setIsVaultInit] = useState(false)
-  const wallet = useAnchorWallet()
   const program = useProgram()
 
   useEffect(() => {
     const checkInit = async () => {
-      if (!wallet || !program) return
-      const isInit = await checkVaultInit(wallet.publicKey, program)
+      if (!program || !program.provider.publicKey)
+        return;
+      const isInit = await checkVaultInit(program.provider.publicKey, program)
       setIsVaultInit(isInit)
       setIsLoading(false)
     }
 
     checkInit()
-  }, [wallet, program])
+  }, [program])
 
   if (isLoading) {
     return <Skeleton className="w-[100px] h-[20px] rounded-full" />
   }
 
-  return isVaultInit ? <div>Vault is initialized</div> : <InitVault />
+  return isVaultInit ? <UnlockVault setIsVaultInit={setIsVaultInit} /> : <InitVault setIsVaultInit={setIsVaultInit} />
 }
 
 

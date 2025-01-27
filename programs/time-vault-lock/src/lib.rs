@@ -9,14 +9,18 @@ declare_id!("4n8pDPEUzwXcTUmRrw61iTzfQssJBoxZWDusopTXN4hA");
 
 #[program]
 pub mod time_vault_lock {
-    use std::{thread::sleep, time::Duration};
 
     use anchor_lang::solana_program::system_instruction;
 
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>, end_clock: i64, nbr_lamports: u64) -> Result<()> {
-        msg!("start unix timestamp = {}", Clock::get()?.unix_timestamp);
+        msg!(
+            "start unix timestamp = {} seconds",
+            Clock::get()?.unix_timestamp
+        );
+        msg!("end_lock = {} seconds", end_clock);
+
         let pda = &mut ctx.accounts.time_vault_pda;
         let user = &mut ctx.accounts.user;
 
@@ -63,6 +67,7 @@ pub mod time_vault_lock {
             msg!("time lock not reached yet");
             return Err(CustomError::NotReached.into());
         }
+
         **pda.to_account_info().try_borrow_mut_lamports()? -= pda.nbr_lamports;
         **user.try_borrow_mut_lamports()? += pda.nbr_lamports;
         msg!(
@@ -71,10 +76,34 @@ pub mod time_vault_lock {
             pda.key(),
             user.key
         );
-
+        //let ix_close = Close {
+        //    account: pda.clone(),
+        //    owner: user.to_account_info(),
+        //};
+        //let cpi_ctx = CpiContext::new(ctx.accounts.program_info.clone(), ix_close);
+        pda.close(user.to_account_info())?;
+        msg!("pda closed");
         Ok(())
     }
+
+    //pub fn close(ctx: Context<Close>) -> Result<()> {
+    //    Ok(())
+    //}
 }
+
+//fn check_end_clock(vault: Account<Vault>) -> bool {
+//    let current_time = Clock::get().unwrap().unix_timestamp;
+//    msg!("current time = {}", current_time);
+//    msg!(
+//        "start clock + end clokc = {}",
+//        vault.start_clock + vault.end_clock
+//    );
+//    if vault.start_clock + vault.end_clock > current_time {
+//        msg!("time lock not reached yet");
+//        return false;
+//    }
+//    true
+//}
 
 #[derive(Accounts)]
 pub struct Initialize<'info> {
@@ -101,5 +130,14 @@ pub struct Unlock<'info> {
         bump = time_vault_pda.bump,
     )]
     pub time_vault_pda: Account<'info, Vault>,
+    //pub program_info: AccountInfo<'info>,
     pub system_program: Program<'info, System>,
 }
+
+//#[derive(Accounts)]
+//pub struct Close<'info> {
+//    #[account(mut, close = owner)]
+//    pub account: Account<'info, Vault>,
+//    #[account(mut)]
+//    pub owner: AccountInfo<'info>,
+//}

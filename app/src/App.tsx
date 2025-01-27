@@ -8,6 +8,8 @@ import {
 } from "@solana/wallet-adapter-react-ui";
 import { ProgramAnchorProvider } from "./ProgramProvider";
 import { ProgramLogic } from "./ProgramLogic";
+import { Toaster } from "./components/ui/toaster";
+import { clusterApiUrl } from "@solana/web3.js";
 
 const Header = () => {
   return (
@@ -22,8 +24,8 @@ const Header = () => {
 
 
 const App = () => {
-  //const endpoint = clusterApiUrl("devnet");
-  const endpoint = "http://localhost:8899";
+  const endpoint = clusterApiUrl("devnet");
+  //const endpoint = "http://localhost:8899";
 
   return (
     <div className="min-h-screen bg-gray-300">
@@ -39,6 +41,7 @@ const App = () => {
           </WalletModalProvider>
         </WalletProvider>
       </ConnectionProvider>
+      <Toaster />
     </div>
   );
 }
