@@ -31,11 +31,7 @@ pub mod time_vault_lock {
         msg!("vault initialized",);
 
         msg!("locking {} lamports for {} ms", nbr_lamports, end_clock);
-        // Create the transfer instruction
-        //**user.try_borrow_mut_lamports()? -= nbr_lamports;
-        //**pda.to_account_info().try_borrow_mut_lamports()? += nbr_lamports;
         let transfer_instruction = system_instruction::transfer(user.key, &pda.key(), nbr_lamports);
-
         anchor_lang::solana_program::program::invoke_signed(
             &transfer_instruction,
             &[
