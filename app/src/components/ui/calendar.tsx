@@ -29,12 +29,14 @@ function Calendar({
   }, [props.selected])
 
   const handleTimeChange = (newHours: string, newMinutes: string) => {
-    if (props.selected instanceof Date && props.onSelect && onTimeChange) {
-      const newDate = new Date(props.selected)
-      newDate.setHours(parseInt(newHours))
-      newDate.setMinutes(parseInt(newMinutes))
-      props.onSelect(newDate)
-      onTimeChange(newDate)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (props.selected instanceof Date && (props as any).onSelect != undefined && onTimeChange) {
+      const newDate = new Date(props.selected);
+      newDate.setHours(parseInt(newHours));
+      newDate.setMinutes(parseInt(newMinutes));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (props as any).onSelect(newDate);
+      onTimeChange(newDate);
     }
   }
 
