@@ -1,5 +1,5 @@
 
-import { PublicKey } from "@solana/web3.js"
+import { LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js"
 import { useProgram } from "./ProgramProvider"
 import { BN, Program, utils } from "@coral-xyz/anchor"
 import type { TimeVaultLock } from "./idl/idl"
@@ -45,13 +45,13 @@ const InitVault = ({ setIsVaultInit }: { setIsVaultInit: Dispatch<SetStateAction
     amount: z.string().refine(
       (val) => {
         try {
-          const x = BigInt(val)
-          return x > BigInt(0)
+          const valLamports = Number(val) * LAMPORTS_PER_SOL;
+          return new BN(valLamports) > new BN(0)
         } catch {
           return false
         }
       },
-      { message: "Amount must be a positive number" },
+      { message: "Amount must be a positive number2" },
     ),
     end_date: z.date().min(new Date(), "The date must be in the future"),
   })
@@ -74,7 +74,7 @@ const InitVault = ({ setIsVaultInit }: { setIsVaultInit: Dispatch<SetStateAction
 
     // Here you would typically call your program's initialization function
     try {
-      const tx = await program?.methods.initialize(new BN(diffTime / 1000), new BN(values.amount)).rpc();
+      const tx = await program?.methods.initialize(new BN(diffTime / 1000), new BN(Number(values.amount) * LAMPORTS_PER_SOL)).rpc();
       console.log('tx init hash = ', tx);
       setIsVaultInit(true);
       toast({
@@ -151,8 +151,13 @@ const InitVault = ({ setIsVaultInit }: { setIsVaultInit: Dispatch<SetStateAction
 
 const VaultInfo = ({ vault, setIsVaultInit }: { vault: VaultInfo } & { setIsVaultInit: Dispatch<SetStateAction<boolean>> }) => {
   const program = useProgram();
+  useEffect(() => {
+    console.log('vault lamports = ', vault.nbrLamports.toString())
+  }, [vault.nbrLamports])
 
   console.log('vault start clock = ', vault.startClock.toString())
+  const solAmount = Number(vault.nbrLamports.toString()) / LAMPORTS_PER_SOL;
+
   const endDate = new Date(Number(vault.startClock.toString()) * 1000 + Number(vault.endClock.toString()))
   console.log('endDate = ', endDate);
 
@@ -165,7 +170,7 @@ const VaultInfo = ({ vault, setIsVaultInit }: { vault: VaultInfo } & { setIsVaul
     setIsVaultInit(false);
     toast({
       title: "Success",
-      description: `${vault.nbrLamports} lamports unlocked to ${program.provider.publicKey}`
+      description: `${solAmount} $SOL unlocked to ${program.provider.publicKey}`
     })
   }
 
@@ -179,10 +184,7 @@ const VaultInfo = ({ vault, setIsVaultInit }: { vault: VaultInfo } & { setIsVaul
       </CardDescription>
     </CardHeader>
     <CardContent>
-
-      {vault.nbrLamports.toString()} lamports lock till {format(endDate, "PPpp")}
-
-
+      {solAmount} $SOL lock till {format(endDate, "PPpp")}
     </CardContent>
     <CardFooter>
       <Button onClick={onClickUnlock}>

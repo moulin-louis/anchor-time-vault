@@ -11,7 +11,7 @@ time_vault_lock = "4n8pDPEUzwXcTUmRrw61iTzfQssJBoxZWDusopTXN4hA"
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Devnet"
+cluster = "Localnet"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
